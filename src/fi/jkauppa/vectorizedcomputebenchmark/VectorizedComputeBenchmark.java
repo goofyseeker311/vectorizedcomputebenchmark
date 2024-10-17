@@ -10,7 +10,7 @@ public class VectorizedComputeBenchmark {
     
     public static void main(String[] args) {
     	Random rand = new Random();
-    	int nc = 100000000; //1000000000;
+    	int nc = 1000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
     	float[] a = new float[nc];
     	float[] b = new float[nc];
     	for (int i=0;i<nc;i++) {
@@ -25,13 +25,13 @@ public class VectorizedComputeBenchmark {
     	}
     	long stimeend = System.currentTimeMillis();
     	long stimedif = stimeend - stimestart;
-    	System.out.println("single threaded: "+stimedif+"ms");
+    	System.out.println("auto-vectorization: "+stimedif+"ms");
     	long vtimestart = System.currentTimeMillis();
     	float[] vc = new float[nc];
     	vectorMultiply(a, b, vc);
     	long vtimeend = System.currentTimeMillis();
     	long vtimedif = vtimeend - vtimestart;
-    	System.out.println("simd vectorized: "+vtimedif+"ms");
+    	System.out.println("simd-vectorization: "+vtimedif+"ms");
     	System.out.println("done.");
     }
 
