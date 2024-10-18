@@ -15,9 +15,7 @@ import org.lwjgl.system.MemoryUtil;
 
 public class VectorizedComputeBenchmark {
 	private MemoryStack clStack = stackPush();
-	
-	public VectorizedComputeBenchmark() {
-	}
+	public VectorizedComputeBenchmark() {}
 	
 	public void run() {
     	Random rand = new Random();
@@ -40,21 +38,21 @@ public class VectorizedComputeBenchmark {
     	PointerBuffer clPlatforms = getClPlatforms();
     	if (clPlatforms!=null) {
     		System.out.println("jocl-vectorization: found "+clPlatforms.capacity()+" platforms");
+            PointerBuffer clCtxProps = clStack.mallocPointer(3);
+            clCtxProps.put(0, CL10.CL_CONTEXT_PLATFORM).put(2, 0);
+            for (int p = 0; p < clPlatforms.capacity(); p++) {
+                long platform = clPlatforms.get(p);
+                clCtxProps.put(1, platform);
+                String platformversion = getClPlatformInfo(platform, CL10.CL_PLATFORM_VERSION);
+                if (platformversion!=null) {
+                	System.out.println("jocl-vectorization: platform["+p+"] platformversion: "+platformversion);
+                } else {
+                	System.out.println("jocl-vectorization: platform["+p+"] platformversion failed");
+                }
+            }
     	} else {
         	System.out.println("jocl-vectorization: platforms init failed");
     	}
-        PointerBuffer clCtxProps = clStack.mallocPointer(3);
-        clCtxProps.put(0, CL10.CL_CONTEXT_PLATFORM).put(2, 0);
-        for (int p = 0; p < clPlatforms.capacity(); p++) {
-            long platform = clPlatforms.get(p);
-            clCtxProps.put(1, platform);
-            String platformversion = getClPlatformInfo(platform, CL10.CL_PLATFORM_VERSION);
-            if (platformversion!=null) {
-            	System.out.println("jocl-vectorization: platform["+p+"] platformversion: "+platformversion);
-            } else {
-            	System.out.println("jocl-vectorization: platform["+p+"] platformversion failed");
-            }
-        }
 	}
 	
     public static void main(String[] args) {
