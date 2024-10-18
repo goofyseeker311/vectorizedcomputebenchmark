@@ -13,3 +13,5 @@ jocl-vectorization:  TBD  / TBD  / TBD
 installation: lwjgl 3.3.4 customize https://www.lwjgl.org/customize
 
 running: add lwjgl/opencl jars in the class path
+
+cpu as opencl device: install w_opencl_runtime_p_2024.2.0.980.exe from https://www.intel.com/content/www/us/en/developer/articles/technical/intel-cpu-runtime-for-opencl-applications-with-sycl-support.html
