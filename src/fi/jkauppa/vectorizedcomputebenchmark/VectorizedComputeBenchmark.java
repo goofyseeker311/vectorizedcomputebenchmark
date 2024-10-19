@@ -1,9 +1,12 @@
 package fi.jkauppa.vectorizedcomputebenchmark;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 import java.util.Random;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL12;
 import org.lwjgl.opencl.CLContextCallback;
@@ -13,6 +16,12 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class VectorizedComputeBenchmark {
 	private MemoryStack clStack = MemoryStack.stackPush();
+	private final String clSource = 
+			"kernel void sum(global const float *a, global const float *b, global float *answer) {"
+			+ "unsigned int xid = get_global_id(0);"
+			+ "answer[xid] = a[xid] * b[xid];"
+			+ "}";	
+
 	public VectorizedComputeBenchmark() {}
 
 	public void run() {
@@ -33,12 +42,15 @@ public class VectorizedComputeBenchmark {
 		long stimeend = System.currentTimeMillis();
 		long stimedif = stimeend - stimestart;
 		System.out.println("auto-vectorization: "+stimedif+"ms");
+		float[] cc = new float[nc];
+		Arrays.fill(cc, 0.0f);
 		PointerBuffer clPlatforms = getClPlatforms();
 		if (clPlatforms!=null) {
 			System.out.println("jocl-vectorization: found "+clPlatforms.capacity()+" platforms");
 			PointerBuffer clCtxProps = clStack.mallocPointer(3);
 			clCtxProps.put(0, CL12.CL_CONTEXT_PLATFORM).put(2, 0);
 			IntBuffer errcode_ret = clStack.callocInt(1);
+			int[] errcode_int = new int[1]; 
 			for (int p = 0; p < clPlatforms.capacity(); p++) {
 				long platform = clPlatforms.get(p);
 				clCtxProps.put(1, platform);
@@ -53,6 +65,33 @@ public class VectorizedComputeBenchmark {
 					long context = CL12.clCreateContext(clCtxProps, device, (CLContextCallback)null, NULL, errcode_ret);
 					if (errcode_ret.get(errcode_ret.position())==CL12.CL_SUCCESS) {
 						System.out.println("jocl-vectorization: platform["+p+"] devices: device context successfully created");
+						long clProgram = CL12.clCreateProgramWithSource(context, clSource, errcode_ret);
+						CL12.clBuildProgram(clProgram, device, "", null, NULL);
+						long clKernel = CL12.clCreateKernel(clProgram, "sum", errcode_ret);
+						long clQueue = CL12.clCreateCommandQueue(context, device, CL12.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
+						long amem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_READ_ONLY, a, errcode_int);
+						CL12.clEnqueueWriteBuffer(clQueue, amem, true, 0, a, null, null);
+						long bmem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_READ_ONLY, b, errcode_int);
+						CL12.clEnqueueWriteBuffer(clQueue, bmem, true, 0, b, null, null);
+						long cmem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_WRITE_ONLY, cc, errcode_int);
+						CL12.clSetKernelArg1p(clKernel, 0, amem);
+						CL12.clSetKernelArg1p(clKernel, 1, bmem);
+						CL12.clSetKernelArg1p(clKernel, 2, cmem);
+						int dimensions = 1;
+						PointerBuffer globalWorkSize = BufferUtils.createPointerBuffer(dimensions);
+						globalWorkSize.put(0, nc);
+						CL12.clFinish(clQueue);
+						long ctimestart = System.currentTimeMillis();
+						CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, null);
+						CL12.clFinish(clQueue);
+						long ctimeend = System.currentTimeMillis();
+						long ctimedif = ctimeend - ctimestart;
+						FloatBuffer resultBuff = BufferUtils.createFloatBuffer(nc);
+						CL12.clEnqueueReadBuffer(clQueue, cmem, true, 0, resultBuff, null, null);
+						Arrays.fill(cc, 0.0f);
+						resultBuff.rewind();
+						resultBuff.get(0, cc);
+						System.out.println("jocl-vectorization: platform["+p+"] compute: kernel vectorization: "+ctimedif+"ms");
 					}
 				}
 			}
