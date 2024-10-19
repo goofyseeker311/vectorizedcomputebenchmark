@@ -5,7 +5,6 @@ Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 ```
 C=A*B float[] mult :  1K   / 1M   / 100M
 auto-vec-amd-r5800x:  0ms  / 3ms  / 94ms
-simd-vec-amd-r5800x:  17ms / 43ms / 98ms
 jocl-cpu-amd-r5800x:  0ms  / 1ms  / 46ms
 jocl-gpu-nv-rtx3080:  0ms  / 1ms  / 56ms
 ```
