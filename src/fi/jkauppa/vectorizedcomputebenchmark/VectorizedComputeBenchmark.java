@@ -1,9 +1,5 @@
 package fi.jkauppa.vectorizedcomputebenchmark;
 
-import static org.lwjgl.opencl.CL10.clGetPlatformIDs;
-import static org.lwjgl.opencl.CL10.clGetPlatformInfo;
-import static org.lwjgl.system.MemoryStack.stackPush;
-
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Random;
@@ -14,7 +10,7 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
 public class VectorizedComputeBenchmark {
-	private MemoryStack clStack = stackPush();
+	private MemoryStack clStack = MemoryStack.stackPush();
 	public VectorizedComputeBenchmark() {}
 
 	public void run() {
@@ -68,7 +64,7 @@ public class VectorizedComputeBenchmark {
 		IntBuffer pi = clStack.mallocInt(1);
 		if (CL10.clGetPlatformIDs(null, pi)==CL10.CL_SUCCESS) {
 			PointerBuffer clPlatforms = clStack.mallocPointer(pi.get(0));
-			if (clGetPlatformIDs(clPlatforms, (IntBuffer)null)==CL10.CL_SUCCESS) {
+			if (CL10.clGetPlatformIDs(clPlatforms, (IntBuffer)null)==CL10.CL_SUCCESS) {
 				platforms = clPlatforms;
 			}
 		}
@@ -93,7 +89,7 @@ public class VectorizedComputeBenchmark {
 		if (CL10.clGetPlatformInfo(platform, param, (ByteBuffer)null, pp)==CL10.CL_SUCCESS) {
 			int bytes = (int)pp.get(0);
 			ByteBuffer buffer = clStack.malloc(bytes);
-			if (clGetPlatformInfo(platform, param, buffer, null)==CL10.CL_SUCCESS) {
+			if (CL10.clGetPlatformInfo(platform, param, buffer, null)==CL10.CL_SUCCESS) {
 				platforminfo = MemoryUtil.memUTF8(buffer, bytes - 1);
 			}
 		}
