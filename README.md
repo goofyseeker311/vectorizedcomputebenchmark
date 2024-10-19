@@ -7,7 +7,8 @@ Java vectorized cpu/gpu tool for benchmarking generic math workloads.
                      1K   / 1M   / 100M
 auto-vectorization:  0ms  / 3ms  / 94ms
 simd-vectorization:  17ms / 43ms / 98ms
-jocl-vectorization:  TBD  / TBD  / TBD
+opencl-cpu-vectors:  0ms  / 1ms  / 46ms
+opencl-gpu-vectors:  0ms  / 1ms  / 56ms
 ```
 
 installation: lwjgl 3.3.4 customize https://www.lwjgl.org/customize
