@@ -2,6 +2,7 @@
 Vectorized compute benchmark tool
 
 Java vectorized cpu/gpu tool for benchmarking generic math workloads.
+Default example vectorization task is float array multiplication C=A*B.
 
 ```
                      1K   / 1M   / 100M
