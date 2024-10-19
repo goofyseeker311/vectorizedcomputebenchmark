@@ -44,10 +44,12 @@ public class VectorizedComputeBenchmark {
 				long platform = clPlatforms.get(p);
 				clCtxProps.put(1, platform);
 				String platformversion = getClPlatformInfo(platform, CL10.CL_PLATFORM_VERSION);
-				if (platformversion!=null) {
-					System.out.println("jocl-vectorization: platform["+p+"] platformversion: "+platformversion);
-				} else {
-					System.out.println("jocl-vectorization: platform["+p+"] platformversion failed");
+				System.out.println("jocl-vectorization: platform["+p+"] platformversion: "+platformversion);
+				PointerBuffer devices = getClDevices(platform);
+				for (int d = 0; d < devices.capacity(); d++) {
+					long device = devices.get(d);
+					String devicename = getClDeviceInfo(device, CL10.CL_DEVICE_NAME);
+					System.out.println("jocl-vectorization: platform["+p+"] device name: "+devicename);
 				}
 			}
 		} else {
@@ -63,14 +65,26 @@ public class VectorizedComputeBenchmark {
 
 	private PointerBuffer getClPlatforms() {
 		PointerBuffer platforms = null;
-		IntBuffer clPlatformsNum = clStack.mallocInt(1);
-		if (CL10.clGetPlatformIDs(null, clPlatformsNum)==CL10.CL_SUCCESS) {
-			PointerBuffer clPlatforms = clStack.mallocPointer(clPlatformsNum.get(0));
+		IntBuffer pi = clStack.mallocInt(1);
+		if (CL10.clGetPlatformIDs(null, pi)==CL10.CL_SUCCESS) {
+			PointerBuffer clPlatforms = clStack.mallocPointer(pi.get(0));
 			if (clGetPlatformIDs(clPlatforms, (IntBuffer)null)==CL10.CL_SUCCESS) {
 				platforms = clPlatforms;
 			}
 		}
 		return platforms;
+	}
+
+	private PointerBuffer getClDevices(long platform) {
+		PointerBuffer devices = null;
+		IntBuffer pi = clStack.mallocInt(1);
+		if (CL10.clGetDeviceIDs(platform, CL10.CL_DEVICE_TYPE_ALL, null, pi)==CL10.CL_SUCCESS) {
+			PointerBuffer pp = clStack.mallocPointer(pi.get(0));
+			if (CL10.clGetDeviceIDs(platform, CL10.CL_DEVICE_TYPE_ALL, pp, (IntBuffer)null)==CL10.CL_SUCCESS) {
+				devices = pp;
+			}
+		}
+		return devices;
 	}
 
 	private String getClPlatformInfo(long platform, int param) {
@@ -85,4 +99,19 @@ public class VectorizedComputeBenchmark {
 		}
 		return platforminfo;
 	}
+
+	private String getClDeviceInfo(long cl_device_id, int param_name) {
+		String deviceinfo = null;
+		PointerBuffer pp = clStack.mallocPointer(1);
+		if (CL10.clGetDeviceInfo(cl_device_id, param_name, (ByteBuffer)null, pp)==CL10.CL_SUCCESS) {
+			int bytes = (int)pp.get(0);
+			ByteBuffer buffer = clStack.malloc(bytes);
+			if (CL10.clGetDeviceInfo(cl_device_id, param_name, buffer, null)==CL10.CL_SUCCESS) {
+				deviceinfo = MemoryUtil.memUTF8(buffer, bytes - 1);
+			}
+
+		}
+		return deviceinfo;
+	}
+
 }
