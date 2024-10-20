@@ -54,7 +54,7 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public void run() {
-		System.out.println("VectorizedComputeBenchmark v0.4");
+		System.out.println("VectorizedComputeBenchmark v0.5");
 		System.out.println("init.");
 		System.out.println("running with element count: "+this.nc);
 		Random rand = new Random();
@@ -66,18 +66,18 @@ public class VectorizedComputeBenchmark {
 			a[i] = rand.nextFloat();
 			b[i] = rand.nextFloat();
 		}
-		float[] sc2 = new float[nc];
-		long s2timestart = System.currentTimeMillis();
-		this.scalarMult(a, b, sc2, nc);
-		long s2timeend = System.currentTimeMillis();
-		long s2timedif = s2timeend - s2timestart;
-		System.out.println("auto-vectorization: scalarmult: "+s2timedif+"ms");
-		float[] cc2 = new float[nc];
+		float[] sc = new float[nc];
+		long stimestart = System.currentTimeMillis();
+		this.scalarMult(a, b, sc, nc);
+		long stimeend = System.currentTimeMillis();
+		long stimedif = stimeend - stimestart;
+		System.out.println("auto-vectorization: scalarmult: "+stimedif+"ms");
+		float[] cc = new float[nc];
 		for (Iterator<Long> i=devices.iterator();i.hasNext();) {
 			Long device = i.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			long ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc2, nc);
+			long ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc, nc);
 			System.out.println("jocl-vectorization: scalarmult: "+ctimedif+"ms device: "+devicename);
 		}
 		int n4c = nc*4;
@@ -89,18 +89,18 @@ public class VectorizedComputeBenchmark {
 		for (int i=0;i<b2.length;i++) {
 			b2[i] = rand.nextFloat();
 		}
-		float[] sc = new float[n4c];
-		long stimestart = System.currentTimeMillis();
-		this.matrixMult(a2, b2, sc, nc);
-		long stimeend = System.currentTimeMillis();
-		long stimedif = stimeend - stimestart;
-		System.out.println("auto-vectorization: matrixmult: "+stimedif+"ms");
-		float[] cc = new float[n4c];
+		float[] sc2 = new float[n4c];
+		long s2timestart = System.currentTimeMillis();
+		this.matrixMult(a2, b2, sc2, nc);
+		long s2timeend = System.currentTimeMillis();
+		long s2timedif = s2timeend - s2timestart;
+		System.out.println("auto-vectorization: matrixmult: "+s2timedif+"ms");
+		float[] cc2 = new float[n4c];
 		for (Iterator<Long> i=devices.iterator();i.hasNext();) {
 			Long device = i.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			long ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc, nc);
+			long ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc);
 			System.out.println("jocl-vectorization: matrixmult: "+ctimedif+"ms device: "+devicename);
 		}
 		System.out.println("done.");
