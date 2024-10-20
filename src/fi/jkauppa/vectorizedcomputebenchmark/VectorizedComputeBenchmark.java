@@ -17,7 +17,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class VectorizedComputeBenchmark {
 	private MemoryStack clStack = MemoryStack.stackPush();
 	
-	private final String clMatMultSource = 
+	private final String clSource = 
 			"kernel void mult(global const float *a, global const float *b, global float *c) {"
 			+ "unsigned int xid = get_global_id(0);"
 			+ "c[xid] = a[xid] * b[xid];"
@@ -43,6 +43,7 @@ public class VectorizedComputeBenchmark {
 	public VectorizedComputeBenchmark() {}
 
 	public void run() {
+		System.out.println("VectorizedComputeBenchmark v0.3");
 		System.out.println("init.");
 		Random rand = new Random();
 		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
@@ -82,7 +83,7 @@ public class VectorizedComputeBenchmark {
 					long context = CL12.clCreateContext(clCtxProps, device, (CLContextCallback)null, NULL, errcode_ret);
 					if (errcode_ret.get(errcode_ret.position())==CL12.CL_SUCCESS) {
 						System.out.println("jocl-vectorization: platform["+p+"] devices: device context successfully created");
-						long clProgram = CL12.clCreateProgramWithSource(context, clMatMultSource, errcode_ret);
+						long clProgram = CL12.clCreateProgramWithSource(context, clSource, errcode_ret);
 						CL12.clBuildProgram(clProgram, device, "", null, NULL);
 						long clKernel = CL12.clCreateKernel(clProgram, "matmult", errcode_ret);
 						long clQueue = CL12.clCreateCommandQueue(context, device, CL12.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
