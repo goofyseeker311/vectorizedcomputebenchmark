@@ -54,7 +54,6 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public void run() {
-		System.out.println("VectorizedComputeBenchmark v0.5");
 		System.out.println("init.");
 		System.out.println("running with element count: "+this.nc);
 		Random rand = new Random();
@@ -67,17 +66,17 @@ public class VectorizedComputeBenchmark {
 			b[i] = rand.nextFloat();
 		}
 		float[] sc = new float[nc];
-		long stimestart = System.currentTimeMillis();
+		long stimestart = System.nanoTime();
 		this.scalarMult(a, b, sc, nc);
-		long stimeend = System.currentTimeMillis();
-		long stimedif = stimeend - stimestart;
+		long stimeend = System.nanoTime();
+		float stimedif = (stimeend-stimestart)/1000000.0f;
 		System.out.println("auto-vectorization: scalarmult: "+stimedif+"ms");
 		float[] cc = new float[nc];
 		for (Iterator<Long> i=devices.iterator();i.hasNext();) {
 			Long device = i.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			long ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc, nc);
+			float ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc, nc);
 			System.out.println("jocl-vectorization: scalarmult: "+ctimedif+"ms device: "+devicename);
 		}
 		int n4c = nc*4;
@@ -90,33 +89,35 @@ public class VectorizedComputeBenchmark {
 			b2[i] = rand.nextFloat();
 		}
 		float[] sc2 = new float[n4c];
-		long s2timestart = System.currentTimeMillis();
+		long s2timestart = System.nanoTime();
 		this.matrixMult(a2, b2, sc2, nc);
-		long s2timeend = System.currentTimeMillis();
-		long s2timedif = s2timeend - s2timestart;
+		long s2timeend = System.nanoTime();
+		float s2timedif = (s2timeend-s2timestart)/1000000.0f;
 		System.out.println("auto-vectorization: matrixmult: "+s2timedif+"ms");
 		float[] cc2 = new float[n4c];
 		for (Iterator<Long> i=devices.iterator();i.hasNext();) {
 			Long device = i.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			long ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc);
+			float ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc);
 			System.out.println("jocl-vectorization: matrixmult: "+ctimedif+"ms device: "+devicename);
 		}
 		System.out.println("done.");
 	}
 
 	public static void main(String[] args) {
+		System.out.println("VectorizedComputeBenchmark v0.6");
 		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
 		try {
 			nc = Integer.parseInt(args[0]);
 		} catch(Exception ex) {}
 		VectorizedComputeBenchmark app = new VectorizedComputeBenchmark(nc);
 		app.run();
+		System.out.println("exit.");
 	}
 
-	private long runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size) {
-		long ctimedif = -1;
+	private float runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size) {
+		float ctimedif = -1.0f;
 		IntBuffer errcode_ret = clStack.callocInt(1);
 		int[] errcode_int = new int[1];
 		long clProgram = CL12.clCreateProgramWithSource(context, source, errcode_ret);
@@ -135,11 +136,11 @@ public class VectorizedComputeBenchmark {
 		PointerBuffer globalWorkSize = BufferUtils.createPointerBuffer(dimensions);
 		globalWorkSize.put(0, size);
 		CL12.clFinish(clQueue);
-		long ctimestart = System.currentTimeMillis();
+		long ctimestart = System.nanoTime();
 		CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, null);
 		CL12.clFinish(clQueue);
-		long ctimeend = System.currentTimeMillis();
-		ctimedif = ctimeend - ctimestart;
+		long ctimeend = System.nanoTime();
+		ctimedif = (ctimeend-ctimestart)/1000000.0f;
 		FloatBuffer resultBuff = BufferUtils.createFloatBuffer(c.length);
 		CL12.clEnqueueReadBuffer(clQueue, cmem, true, 0, resultBuff, null, null);
 		Arrays.fill(c, 0.0f);
