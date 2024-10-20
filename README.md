@@ -11,9 +11,9 @@ jocl-gpu-nv-rtx3080:   56us /  56us /  55us /       /       / 1ms   / 7ms   / 53
 
 ```
 C=A*B mat4*float4[]:   10   / 100   / 1K    / 10K   / 100K  / 1M    / 10M   / 100M
-auto-vec-amd-r5800x:    8us /  54us / 275us /       /       / 18ms / 56ms  / 442ms
-jocl-cpu-amd-r5800x:   44us /  77us /  52us /       /       / 2ms  / 14ms  / 136ms
-jocl-gpu-nv-rtx3080:   41us /  38us /  45us /       /       / 3ms  / 22ms  / 197ms
+auto-vec-amd-r5800x:    8us /  54us / 275us /       /       / 18ms  / 56ms  / 442ms
+jocl-cpu-amd-r5800x:   44us /  77us /  52us /       /       / 2ms   / 14ms  / 136ms
+jocl-gpu-nv-rtx3080:   41us /  38us /  45us /       /       / 3ms   / 22ms  / 197ms
 ```
 
 Compiling:
