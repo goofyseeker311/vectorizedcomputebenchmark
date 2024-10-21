@@ -25,7 +25,7 @@ public class VectorizedComputeBenchmark {
 		"kernel void floatingop() {"
 		+ "unsigned int xid = get_global_id(0);"
 		+ "float id = (float)xid;"
-		+ "float c = (xid+1.23f)*xid;"
+		+ "float c = (id+1.23f)*id;"
 		+ "}"
 		+
 		"kernel void scalarmult(global const float *a, global const float *b, global float *c) {"
