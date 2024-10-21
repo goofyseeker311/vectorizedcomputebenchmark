@@ -138,7 +138,7 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.8");
+		System.out.println("VectorizedComputeBenchmark v0.9");
 		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
 		try {
 			nc = Integer.parseInt(args[0]);
@@ -170,10 +170,13 @@ public class VectorizedComputeBenchmark {
 		CL12.clFinish(clQueue);
 		PointerBuffer event = clStack.mallocPointer(1);
 		if (CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, event)==CL12.CL_SUCCESS) {
-			long ctimestart = System.nanoTime();
 			CL12.clWaitForEvents(event);
-			long ctimeend = System.nanoTime();
-			ctimedif = (ctimeend-ctimestart)/1000000.0f;
+			long eventLong = event.get(0);
+			long[] ctimestart = {0};
+			long[] ctimeend = {0};
+			CL12.clGetEventProfilingInfo(eventLong, CL12.CL_PROFILING_COMMAND_START, ctimestart, (PointerBuffer)null);
+			CL12.clGetEventProfilingInfo(eventLong, CL12.CL_PROFILING_COMMAND_END, ctimeend, (PointerBuffer)null);
+			ctimedif = (ctimeend[0]-ctimestart[0])/1000000.0f;
 			FloatBuffer resultBuff = BufferUtils.createFloatBuffer(c.length);
 			CL12.clEnqueueReadBuffer(clQueue, cmem, true, 0, resultBuff, null, null);
 			Arrays.fill(c, 0.0f);
