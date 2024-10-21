@@ -3,10 +3,10 @@
 Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
 ```
-c=(id+1.0f)*id flop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-auto-vec-amd-r5800x:        /       /  12us /       /       / 1.5ms /       / 1.5ms
-jocl-cpu-amd-r5800x:        /       / 123us /       /       / 156us /       / 324us
-jocl-gpu-nv-rtx3080:        /       /  42us /       /       /  48us /       / 313us
+c=(id+1.2f)*id flop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
+auto-vec-amd-r5800x:        /       /  12us /  97us / 884us / 1.5ms / 1.5ms / 1.5ms
+jocl-cpu-amd-r5800x:        /       / 123us / 126us / 161us / 156us / 196us / 324us
+jocl-gpu-nv-rtx3080:        /       /  42us /  42us /  43us /  48us /  71us / 313us
 ```
 
 ```
