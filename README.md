@@ -4,23 +4,23 @@ Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
 ```
 c=(id+1.2f)*id flop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-auto-vec-amd-r5800x:  3.1us / 4.1us /  13us /  98us / 832us / 1.5ms / 1.5ms / 1.5ms
-jocl-cpu-amd-r5800x:   25us /  28us /  41us /  44us /  70us /  74us / 198us / 207us
-jocl-gpu-nv-rtx3080:   24us /  24us / 4.1us /  24us / 3.6us / 6.6us /  32us / 274us
+auto-vec-amd-r5800x:  3.1us / 4.1us /  13us /  98us / 848us / 1.5ms / 1.5ms / 1.5ms
+jocl-cpu-amd-r5800x:   25us /  28us /  41us /  44us /  58us /  74us / 198us / 207us
+jocl-gpu-nv-rtx3080:   24us /  24us / 4.1us /  24us /  24us / 6.6us /  32us / 274us
 ```
 
 ```
 C=A*B float[] mult :     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
 auto-vec-amd-r5800x:  2.6us / 4.6us /  25us / 166us / 1.4ms /  12ms / 9.1ms /  49ms
-jocl-cpu-amd-r5800x:   36us /  81us /  13us /  28us /  30us / 495us / 4.8ms /  46ms
-jocl-gpu-nv-rtx3080:   14us /  13us /  14us / 5.1us /  40us /  17us / 257us /  1.8ms
+jocl-cpu-amd-r5800x:   36us /  81us /  13us /  28us /  37us / 495us / 4.8ms /  46ms
+jocl-gpu-nv-rtx3080:   14us /  13us /  14us / 5.1us / 7.2us /  17us / 257us /  1.8ms
 ```
 
 ```
 C=A*B mat4*float4[]:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
 auto-vec-amd-r5800x:  8.1us /  42us / 289us / 2.6ms /  14ms /  17ms /  56ms / 444ms
-jocl-cpu-amd-r5800x:   48us /  41us /  16us /  23us / 102us / 1.6ms /  14ms / 136ms
-jocl-gpu-nv-rtx3080:    5us / 4.1us /  14us / 5.1us / 100us /  49us / 483us / 4.7ms
+jocl-cpu-amd-r5800x:   48us /  41us /  16us /  23us /  94us / 1.6ms /  14ms / 136ms
+jocl-gpu-nv-rtx3080:    5us / 4.1us /  14us / 5.1us /  10us /  49us / 483us / 4.7ms
 ```
 
 Compiling:
