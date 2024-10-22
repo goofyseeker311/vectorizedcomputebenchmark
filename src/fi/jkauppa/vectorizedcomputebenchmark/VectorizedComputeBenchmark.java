@@ -42,26 +42,32 @@ public class VectorizedComputeBenchmark {
 		+ "c[xid*4+3] = b[12]*a[xid*4+0] + b[13]*a[xid*4+1] + b[14]*a[xid*4+2] + b[15]*a[xid*4+3];"
 		+ "}";
 	
-	private void floatingOp(int size) {
-		for (int i=0;i<size;i++) {
-			float id = (float)i;
-			@SuppressWarnings("unused")
-			float c = (id+1.23f)*id;
+	private void floatingOp(int size, int repeat) {
+		for (int j=0;j<repeat;j++) {
+			for (int i=0;i<size;i++) {
+				float id = (float)i;
+				@SuppressWarnings("unused")
+				float c = (id+1.23f)*id;
+			}
 		}
 	}
 	
-	private void scalarMult(float[] a, float[]b, float[] c, int size) {
-		for (int i=0;i<size;i++) {
-			c[i] = b[i]*a[i];
+	private void scalarMult(float[] a, float[]b, float[] c, int size, int repeat) {
+		for (int j=0;j<repeat;j++) {
+			for (int i=0;i<size;i++) {
+				c[i] = b[i]*a[i];
+			}
 		}
 	}
 
-	private void matrixMult(float[] a, float[]b, float[] c, int size) {
-		for (int i=0;i<size;i++) {
-			c[i*4+0] = b[ 0]*a[i*4+0] + b[ 1]*a[i*4+1] + b[ 2]*a[i*4+2] + b[ 3]*a[i*4+3];
-			c[i*4+1] = b[ 4]*a[i*4+0] + b[ 5]*a[i*4+1] + b[ 6]*a[i*4+2] + b[ 7]*a[i*4+3];
-			c[i*4+2] = b[ 8]*a[i*4+0] + b[ 9]*a[i*4+1] + b[10]*a[i*4+2] + b[11]*a[i*4+3];
-			c[i*4+3] = b[12]*a[i*4+0] + b[13]*a[i*4+1] + b[14]*a[i*4+2] + b[15]*a[i*4+3];
+	private void matrixMult(float[] a, float[]b, float[] c, int size, int repeat) {
+		for (int j=0;j<repeat;j++) {
+			for (int i=0;i<size;i++) {
+				c[i*4+0] = b[ 0]*a[i*4+0] + b[ 1]*a[i*4+1] + b[ 2]*a[i*4+2] + b[ 3]*a[i*4+3];
+				c[i*4+1] = b[ 4]*a[i*4+0] + b[ 5]*a[i*4+1] + b[ 6]*a[i*4+2] + b[ 7]*a[i*4+3];
+				c[i*4+2] = b[ 8]*a[i*4+0] + b[ 9]*a[i*4+1] + b[10]*a[i*4+2] + b[11]*a[i*4+3];
+				c[i*4+3] = b[12]*a[i*4+0] + b[13]*a[i*4+1] + b[14]*a[i*4+2] + b[15]*a[i*4+3];
+			}
 		}
 	}
 
@@ -79,9 +85,7 @@ public class VectorizedComputeBenchmark {
 		
 		float[] fa = {1.0f}; 
 		long ftimestart = System.nanoTime();
-		for (int i=0;i<re;i++) {
-			this.floatingOp(nc);
-		}
+		this.floatingOp(nc,re);
 		long ftimeend = System.nanoTime();
 		float ftimedif = (ftimeend-ftimestart)/(1000000.0f*re);
 		System.out.println(String.format("%.4f",ftimedif).replace(",", ".")+"ms\t auto-vectorization: floatingop");
@@ -89,11 +93,7 @@ public class VectorizedComputeBenchmark {
 			Long device = d.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = 0.0f;
-			for (int i=0;i<re;i++) {
-				ctimedif += runProgram(context, device, clSource, "floatingop", fa, fa, fa, nc);
-			}
-			ctimedif /= re;
+			float ctimedif = runProgram(context, device, clSource, "floatingop", fa, fa, fa, nc, re)/re;
 			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: floatingop: device: "+devicename);
 		}
 		
@@ -105,9 +105,7 @@ public class VectorizedComputeBenchmark {
 		}
 		float[] sc = new float[nc];
 		long stimestart = System.nanoTime();
-		for (int i=0;i<re;i++) {
-			this.scalarMult(a, b, sc, nc);
-		}
+		this.scalarMult(a, b, sc, nc, re);
 		long stimeend = System.nanoTime();
 		float stimedif = (stimeend-stimestart)/(1000000.0f*re);
 		System.out.println(String.format("%.4f",stimedif).replace(",", ".")+"ms\t auto-vectorization: scalarmult: ");
@@ -116,11 +114,7 @@ public class VectorizedComputeBenchmark {
 			Long device = d.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = 0.0f;
-			for (int i=0;i<re;i++) {
-				ctimedif += runProgram(context, device, clSource, "scalarmult", a, b, cc, nc);
-			}
-			ctimedif /= re;
+			float ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc, nc, re)/re;
 			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: scalarmult: device: "+devicename);
 		}
 		
@@ -135,9 +129,7 @@ public class VectorizedComputeBenchmark {
 		}
 		float[] sc2 = new float[n4c];
 		long s2timestart = System.nanoTime();
-		for (int i=0;i<re;i++) {
-			this.matrixMult(a2, b2, sc2, nc);
-		}
+		this.matrixMult(a2, b2, sc2, nc, re);
 		long s2timeend = System.nanoTime();
 		float s2timedif = (s2timeend-s2timestart)/(1000000.0f*re);
 		System.out.println(String.format("%.4f",s2timedif).replace(",", ".")+"ms\t auto-vectorization: matrixmult: ");
@@ -146,11 +138,7 @@ public class VectorizedComputeBenchmark {
 			Long device = d.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = 0.0f;
-			for (int i=0;i<re;i++) {
-				ctimedif += runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc);
-			}
-			ctimedif /= re;
+			float ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc, re)/re;
 			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: matrixmult: device: "+devicename);
 		}
 		
@@ -158,9 +146,9 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.1");
+		System.out.println("VectorizedComputeBenchmark v0.9.2");
 		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
-		int re = 100;
+		int re = 1000;
 		try {
 			nc = Integer.parseInt(args[0]);
 		} catch(Exception ex) {}
@@ -172,7 +160,7 @@ public class VectorizedComputeBenchmark {
 		System.out.println("exit.");
 	}
 
-	private float runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size) {
+	private float runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size, int repeat) {
 		float ctimedif = 0.0f;
 		IntBuffer errcode_ret = clStack.callocInt(1);
 		int[] errcode_int = new int[1];
@@ -193,13 +181,19 @@ public class VectorizedComputeBenchmark {
 		globalWorkSize.put(0, size);
 		CL12.clFinish(clQueue);
 		PointerBuffer event = clStack.mallocPointer(1);
+		PointerBuffer event2 = clStack.mallocPointer(1);
 		if (CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, event)==CL12.CL_SUCCESS) {
+			for (int i=1;i<repeat;i++) {
+				CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, event2);
+			}
 			CL12.clWaitForEvents(event);
+			CL12.clWaitForEvents(event2);
 			long eventLong = event.get(0);
+			long eventLong2 = event2.get(0);
 			long[] ctimestart = {0};
 			long[] ctimeend = {0};
 			CL12.clGetEventProfilingInfo(eventLong, CL12.CL_PROFILING_COMMAND_START, ctimestart, (PointerBuffer)null);
-			CL12.clGetEventProfilingInfo(eventLong, CL12.CL_PROFILING_COMMAND_END, ctimeend, (PointerBuffer)null);
+			CL12.clGetEventProfilingInfo(eventLong2, CL12.CL_PROFILING_COMMAND_END, ctimeend, (PointerBuffer)null);
 			ctimedif = (ctimeend[0]-ctimestart[0])/1000000.0f;
 			FloatBuffer resultBuff = BufferUtils.createFloatBuffer(c.length);
 			CL12.clEnqueueReadBuffer(clQueue, cmem, true, 0, resultBuff, null, null);
