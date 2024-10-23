@@ -109,6 +109,7 @@ public class VectorizedComputeBenchmark {
 		long stimeend = System.nanoTime();
 		float stimedif = (stimeend-stimestart)/(1000000.0f*re);
 		System.out.println(String.format("%.4f",stimedif).replace(",", ".")+"ms\t auto-vectorization: scalarmult: ");
+		sc = null;
 		float[] cc = new float[nc];
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
@@ -133,6 +134,7 @@ public class VectorizedComputeBenchmark {
 		long s2timeend = System.nanoTime();
 		float s2timedif = (s2timeend-s2timestart)/(1000000.0f*re);
 		System.out.println(String.format("%.4f",s2timedif).replace(",", ".")+"ms\t auto-vectorization: matrixmult: ");
+		sc2 = null;
 		float[] cc2 = new float[n4c];
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
@@ -146,7 +148,7 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.2");
+		System.out.println("VectorizedComputeBenchmark v0.9.3");
 		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
 		int re = 1000;
 		try {
