@@ -22,6 +22,21 @@ public class VectorizedComputeBenchmark {
 	private int nc;
 	private int re;
 
+	public static void main(String[] args) {
+		System.out.println("VectorizedComputeBenchmark v0.9.4");
+		int nc = 100000000;
+		int re = 1000;
+		try {
+			nc = Integer.parseInt(args[0]);
+		} catch(Exception ex) {}
+		try {
+			re = Integer.parseInt(args[1]);
+		} catch(Exception ex) {}
+		VectorizedComputeBenchmark app = new VectorizedComputeBenchmark(nc,re);
+		app.run();
+		System.out.println("exit.");
+	}
+
 	private final String clSource =
 		"kernel void floatingop() {"
 		+ "unsigned int xid = get_global_id(0);"
@@ -40,6 +55,18 @@ public class VectorizedComputeBenchmark {
 		+ "c[xid*4+1] = b[ 4]*a[xid*4+0] + b[ 5]*a[xid*4+1] + b[ 6]*a[xid*4+2] + b[ 7]*a[xid*4+3];"
 		+ "c[xid*4+2] = b[ 8]*a[xid*4+0] + b[ 9]*a[xid*4+1] + b[10]*a[xid*4+2] + b[11]*a[xid*4+3];"
 		+ "c[xid*4+3] = b[12]*a[xid*4+0] + b[13]*a[xid*4+1] + b[14]*a[xid*4+2] + b[15]*a[xid*4+3];"
+		+ "}"
+		+
+		"kernel void loopfmult(global const float *a, global const float *b, global float *c) {"
+		+ "unsigned int xid = get_global_id(0);"
+		+ "float id = (float)xid;"
+		+ "float loopsum = 0.0f;"
+		+ "for (int y=0;y<8;y++) {"
+		+   "for (int x=0;x<12;x++) {"
+		+     "loopsum += (id+x)*y;"
+		+   "}"
+		+ "}"
+		+ "c[xid] = loopsum;"
 		+ "}";
 	
 	private void floatingOp(int size, int repeat) {
@@ -51,7 +78,6 @@ public class VectorizedComputeBenchmark {
 			}
 		}
 	}
-	
 	private void scalarMult(float[] a, float[]b, float[] c, int size, int repeat) {
 		for (int j=0;j<repeat;j++) {
 			for (int i=0;i<size;i++) {
@@ -59,7 +85,6 @@ public class VectorizedComputeBenchmark {
 			}
 		}
 	}
-
 	private void matrixMult(float[] a, float[]b, float[] c, int size, int repeat) {
 		for (int j=0;j<repeat;j++) {
 			for (int i=0;i<size;i++) {
@@ -67,6 +92,20 @@ public class VectorizedComputeBenchmark {
 				c[i*4+1] = b[ 4]*a[i*4+0] + b[ 5]*a[i*4+1] + b[ 6]*a[i*4+2] + b[ 7]*a[i*4+3];
 				c[i*4+2] = b[ 8]*a[i*4+0] + b[ 9]*a[i*4+1] + b[10]*a[i*4+2] + b[11]*a[i*4+3];
 				c[i*4+3] = b[12]*a[i*4+0] + b[13]*a[i*4+1] + b[14]*a[i*4+2] + b[15]*a[i*4+3];
+			}
+		}
+	}
+	private void loopfMult(float[] c, int size, int repeat) {
+		for (int j=0;j<repeat;j++) {
+			for (int i=0;i<size;i++) {
+				float id = (float)i;
+				float loopsum = 0.0f;
+				for (int y=0;y<8;y++) {
+					for (int x=0;x<12;x++) {
+						loopsum += (id+x)*y;
+					}
+				}
+				c[i] = loopsum;
 			}
 		}
 	}
@@ -144,22 +183,25 @@ public class VectorizedComputeBenchmark {
 			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: matrixmult: device: "+devicename);
 		}
 		
+		float[] cl = new float[nc];
+		long ltimestart = System.nanoTime();
+		this.loopfMult(cl, nc, re);
+		long ltimeend = System.nanoTime();
+		float ltimedif = (ltimeend-ltimestart)/(1000000.0f*re);
+		System.out.println(String.format("%.4f",ltimedif).replace(",", ".")+"ms\t auto-vectorization: loopfmult: ");
+		cl = null;
+		float[] a3 = new float[1];
+		float[] b3 = new float[1];
+		float[] cl2 = new float[nc];
+		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
+			Long device = d.next();
+			Long context = devicecontexts.get(device);
+			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
+			float ctimedif = runProgram(context, device, clSource, "loopfmult", a3, b3, cl2, nc, re)/re;
+			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: loopfmult: device: "+devicename);
+		}
+		
 		System.out.println("done.");
-	}
-
-	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.3");
-		int nc = 100000000; //1000M:1000000000, 100M:100000000, 1M:1000000, 1K:1000
-		int re = 1000;
-		try {
-			nc = Integer.parseInt(args[0]);
-		} catch(Exception ex) {}
-		try {
-			re = Integer.parseInt(args[1]);
-		} catch(Exception ex) {}
-		VectorizedComputeBenchmark app = new VectorizedComputeBenchmark(nc,re);
-		app.run();
-		System.out.println("exit.");
 	}
 
 	private float runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size, int repeat) {
