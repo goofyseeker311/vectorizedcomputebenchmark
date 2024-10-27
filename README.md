@@ -22,7 +22,7 @@ jocl-gpu-nv-rtx3080:   23us /  21us /  21us /  21us /  21us /  57us / 622us / 4.
 
 ```
 C=72*128 loopsmflop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-jocl-cpu-amd-r5800x:        /       /       /       /       /       /       /   11s
+jocl-cpu-amd-r5800x:   15us / 8.9us / 134us / 1.1ms /  10ms / 107ms /  1.1s /   11s
 jocl-gpu-nv-rtx3080:   33us /  33us /  35us /  34us / 127us / 1.2ms /  12ms / 118ms
 ```
 
