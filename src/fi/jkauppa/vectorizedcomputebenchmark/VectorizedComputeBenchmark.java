@@ -23,7 +23,7 @@ public class VectorizedComputeBenchmark {
 	private int re;
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.4");
+		System.out.println("VectorizedComputeBenchmark v0.9.5");
 		int nc = 100000000;
 		int re = 1000;
 		try {
@@ -57,58 +57,17 @@ public class VectorizedComputeBenchmark {
 		+ "c[xid*4+3] = b[12]*a[xid*4+0] + b[13]*a[xid*4+1] + b[14]*a[xid*4+2] + b[15]*a[xid*4+3];"
 		+ "}"
 		+
-		"kernel void loopfmult(global const float *a, global const float *b, global float *c) {"
+		"kernel void loopsmmult(global const float *a, global const float *b, global float *c) {"
 		+ "unsigned int xid = get_global_id(0);"
 		+ "float id = (float)xid;"
 		+ "float loopsum = 0.0f;"
-		+ "for (int y=0;y<8;y++) {"
-		+   "for (int x=0;x<12;x++) {"
+		+ "for (int y=0;y<72;y++) {"
+		+   "for (int x=0;x<128;x++) {"
 		+     "loopsum += (id+x)*y;"
 		+   "}"
 		+ "}"
 		+ "c[xid] = loopsum;"
 		+ "}";
-	
-	private void floatingOp(int size, int repeat) {
-		for (int j=0;j<repeat;j++) {
-			for (int i=0;i<size;i++) {
-				float id = (float)i;
-				@SuppressWarnings("unused")
-				float c = (id+1.23f)*id;
-			}
-		}
-	}
-	private void scalarMult(float[] a, float[]b, float[] c, int size, int repeat) {
-		for (int j=0;j<repeat;j++) {
-			for (int i=0;i<size;i++) {
-				c[i] = b[i]*a[i];
-			}
-		}
-	}
-	private void matrixMult(float[] a, float[]b, float[] c, int size, int repeat) {
-		for (int j=0;j<repeat;j++) {
-			for (int i=0;i<size;i++) {
-				c[i*4+0] = b[ 0]*a[i*4+0] + b[ 1]*a[i*4+1] + b[ 2]*a[i*4+2] + b[ 3]*a[i*4+3];
-				c[i*4+1] = b[ 4]*a[i*4+0] + b[ 5]*a[i*4+1] + b[ 6]*a[i*4+2] + b[ 7]*a[i*4+3];
-				c[i*4+2] = b[ 8]*a[i*4+0] + b[ 9]*a[i*4+1] + b[10]*a[i*4+2] + b[11]*a[i*4+3];
-				c[i*4+3] = b[12]*a[i*4+0] + b[13]*a[i*4+1] + b[14]*a[i*4+2] + b[15]*a[i*4+3];
-			}
-		}
-	}
-	private void loopfMult(float[] c, int size, int repeat) {
-		for (int j=0;j<repeat;j++) {
-			for (int i=0;i<size;i++) {
-				float id = (float)i;
-				float loopsum = 0.0f;
-				for (int y=0;y<8;y++) {
-					for (int x=0;x<12;x++) {
-						loopsum += (id+x)*y;
-					}
-				}
-				c[i] = loopsum;
-			}
-		}
-	}
 
 	public VectorizedComputeBenchmark(int vnc, int vre) {
 		this.nc = vnc;
@@ -123,11 +82,6 @@ public class VectorizedComputeBenchmark {
 		Set<Long> devices = devicecontexts.keySet();
 		
 		float[] fa = {1.0f}; 
-		long ftimestart = System.nanoTime();
-		this.floatingOp(nc,re);
-		long ftimeend = System.nanoTime();
-		float ftimedif = (ftimeend-ftimestart)/(1000000.0f*re);
-		System.out.println(String.format("%.4f",ftimedif).replace(",", ".")+"ms\t auto-vectorization: floatingop");
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
 			Long context = devicecontexts.get(device);
@@ -142,13 +96,6 @@ public class VectorizedComputeBenchmark {
 			a[i] = rand.nextFloat();
 			b[i] = rand.nextFloat();
 		}
-		float[] sc = new float[nc];
-		long stimestart = System.nanoTime();
-		this.scalarMult(a, b, sc, nc, re);
-		long stimeend = System.nanoTime();
-		float stimedif = (stimeend-stimestart)/(1000000.0f*re);
-		System.out.println(String.format("%.4f",stimedif).replace(",", ".")+"ms\t auto-vectorization: scalarmult: ");
-		sc = null;
 		float[] cc = new float[nc];
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
@@ -167,13 +114,6 @@ public class VectorizedComputeBenchmark {
 		for (int i=0;i<b2.length;i++) {
 			b2[i] = rand.nextFloat();
 		}
-		float[] sc2 = new float[n4c];
-		long s2timestart = System.nanoTime();
-		this.matrixMult(a2, b2, sc2, nc, re);
-		long s2timeend = System.nanoTime();
-		float s2timedif = (s2timeend-s2timestart)/(1000000.0f*re);
-		System.out.println(String.format("%.4f",s2timedif).replace(",", ".")+"ms\t auto-vectorization: matrixmult: ");
-		sc2 = null;
 		float[] cc2 = new float[n4c];
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
@@ -183,13 +123,6 @@ public class VectorizedComputeBenchmark {
 			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: matrixmult: device: "+devicename);
 		}
 		
-		float[] cl = new float[nc];
-		long ltimestart = System.nanoTime();
-		this.loopfMult(cl, nc, re);
-		long ltimeend = System.nanoTime();
-		float ltimedif = (ltimeend-ltimestart)/(1000000.0f*re);
-		System.out.println(String.format("%.4f",ltimedif).replace(",", ".")+"ms\t auto-vectorization: loopfmult: ");
-		cl = null;
 		float[] a3 = new float[1];
 		float[] b3 = new float[1];
 		float[] cl2 = new float[nc];
@@ -197,8 +130,8 @@ public class VectorizedComputeBenchmark {
 			Long device = d.next();
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = runProgram(context, device, clSource, "loopfmult", a3, b3, cl2, nc, re)/re;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: loopfmult: device: "+devicename);
+			float ctimedif = runProgram(context, device, clSource, "loopsmmult", a3, b3, cl2, nc, re)/re;
+			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: loopsmmult: device: "+devicename);
 		}
 		
 		System.out.println("done.");
