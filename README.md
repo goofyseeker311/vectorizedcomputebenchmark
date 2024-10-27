@@ -2,28 +2,12 @@
 
 Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
-```
-c=(id+1.2f)*id flop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-jocl-cpu-amd-r5800x:  4.1us /   5us / 6.6us / 8.3us /  11us /  14us /  27us /  51us
-jocl-gpu-nv-rtx3080:   22us /  32us /  20us /  21us /  22us /  24us /  34us / 546us
-```
+Benchmark test workload: 72*128 nested loops of float32 sum(2x) and multiplication(1x) with result placement into memory.
 
 ```
-C=A*B float[] mult :     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-jocl-cpu-amd-r5800x:  3.7us / 5.1us / 6.1us /   9us /  17us /  76us / 4.1ms /  46ms
-jocl-gpu-nv-rtx3080:   23us /  23us /  21us /  22us /  22us /  26us / 329us / 1.8ms
-```
-
-```
-C=A*B mat4*float4[]:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-jocl-cpu-amd-r5800x:  4.4us /   5us / 6.7us /  14us /  67us / 589us /  14ms / 137ms
-jocl-gpu-nv-rtx3080:   23us /  21us /  21us /  21us /  21us /  57us / 622us / 4.6ms
-```
-
-```
-C=72*128 loopsmflop:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-jocl-cpu-amd-r5800x:   15us / 8.9us / 134us / 1.1ms /  10ms / 107ms /  1.1s /   11s
-jocl-gpu-nv-rtx3080:   33us /  33us /  35us /  34us / 127us / 1.2ms /  12ms / 118ms
+                    10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
+cpu-amd-r5800x:   15us / 8.9us / 134us / 1.1ms /  10ms / 107ms /  1.1s /   11s
+gpu-nv-rtx3080:   33us /  33us /  35us /  34us / 127us / 1.2ms /  12ms / 118ms
 ```
 
 
