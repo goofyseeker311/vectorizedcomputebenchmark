@@ -5,7 +5,6 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -23,9 +22,9 @@ public class VectorizedComputeBenchmark {
 	private int re;
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.5");
+		System.out.println("VectorizedComputeBenchmark v0.9.6");
 		int nc = 100000000;
-		int re = 1000;
+		int re = 100;
 		try {
 			nc = Integer.parseInt(args[0]);
 		} catch(Exception ex) {}
@@ -38,25 +37,6 @@ public class VectorizedComputeBenchmark {
 	}
 
 	private final String clSource =
-		"kernel void floatingop() {"
-		+ "unsigned int xid = get_global_id(0);"
-		+ "float id = (float)xid;"
-		+ "float c = (id+1.23f)*id;"
-		+ "}"
-		+
-		"kernel void scalarmult(global const float *a, global const float *b, global float *c) {"
-		+ "unsigned int xid = get_global_id(0);"
-		+ "c[xid] = a[xid] * b[xid];"
-		+ "}"
-		+
-		"kernel void matrixmult(global const float *a, global const float *b, global float *c) {"
-		+ "unsigned int xid = get_global_id(0);"
-		+ "c[xid*4+0] = b[ 0]*a[xid*4+0] + b[ 1]*a[xid*4+1] + b[ 2]*a[xid*4+2] + b[ 3]*a[xid*4+3];"
-		+ "c[xid*4+1] = b[ 4]*a[xid*4+0] + b[ 5]*a[xid*4+1] + b[ 6]*a[xid*4+2] + b[ 7]*a[xid*4+3];"
-		+ "c[xid*4+2] = b[ 8]*a[xid*4+0] + b[ 9]*a[xid*4+1] + b[10]*a[xid*4+2] + b[11]*a[xid*4+3];"
-		+ "c[xid*4+3] = b[12]*a[xid*4+0] + b[13]*a[xid*4+1] + b[14]*a[xid*4+2] + b[15]*a[xid*4+3];"
-		+ "}"
-		+
 		"kernel void loopsmmult(global const float *a, global const float *b, global float *c) {"
 		+ "unsigned int xid = get_global_id(0);"
 		+ "float id = (float)xid;"
@@ -76,52 +56,14 @@ public class VectorizedComputeBenchmark {
 
 	public void run() {
 		System.out.println("init.");
-		System.out.println("Element count: "+this.nc+", Repeat count: "+this.re);
-		Random rand = new Random();
 		TreeMap<Long,Long> devicecontexts = initClDevices();
 		Set<Long> devices = devicecontexts.keySet();
-		
-		float[] fa = {1.0f}; 
 		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
 			Long device = d.next();
-			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = runProgram(context, device, clSource, "floatingop", fa, fa, fa, nc, re)/re;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: floatingop: device: "+devicename);
+			System.out.println("device found: "+devicename.trim());
 		}
-		
-		float[] a = new float[nc];
-		float[] b = new float[nc];
-		for (int i=0;i<a.length;i++) {
-			a[i] = rand.nextFloat();
-			b[i] = rand.nextFloat();
-		}
-		float[] cc = new float[nc];
-		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
-			Long device = d.next();
-			Long context = devicecontexts.get(device);
-			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = runProgram(context, device, clSource, "scalarmult", a, b, cc, nc, re)/re;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: scalarmult: device: "+devicename);
-		}
-		
-		int n4c = nc*4;
-		float[] a2 = new float[n4c];
-		for (int i=0;i<a2.length;i++) {
-			a2[i] = rand.nextFloat();
-		}
-		float[] b2 = new float[16];
-		for (int i=0;i<b2.length;i++) {
-			b2[i] = rand.nextFloat();
-		}
-		float[] cc2 = new float[n4c];
-		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
-			Long device = d.next();
-			Long context = devicecontexts.get(device);
-			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = runProgram(context, device, clSource, "matrixmult", a2, b2, cc2, nc, re)/re;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: matrixmult: device: "+devicename);
-		}
+		System.out.println("Element count: "+this.nc+", Repeat count: "+this.re);
 		
 		float[] a3 = new float[1];
 		float[] b3 = new float[1];
@@ -131,7 +73,8 @@ public class VectorizedComputeBenchmark {
 			Long context = devicecontexts.get(device);
 			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
 			float ctimedif = runProgram(context, device, clSource, "loopsmmult", a3, b3, cl2, nc, re)/re;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t jocl-vectorization: loopsmmult: device: "+devicename);
+			float tflops = (nc*3.0f*128.0f*72.0f*(1000.0f/ctimedif))/1000000000000.0f;
+			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t"+String.format("%.3f",tflops).replace(",", ".")+"tflops\t device: "+devicename);
 		}
 		
 		System.out.println("done.");
