@@ -1,195 +1,61 @@
 package fi.jkauppa.vectorizedcomputebenchmark;
 
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.TreeMap;
-
-import org.lwjgl.BufferUtils;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.opencl.CL12;
-import org.lwjgl.opencl.CLContextCallback;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
-import static org.lwjgl.system.MemoryUtil.NULL;
+import fi.jkauppa.vectorizedcomputebenchmark.ComputeLib.Device;
 
 public class VectorizedComputeBenchmark {
-	private MemoryStack clStack = MemoryStack.stackPush();
+	private ComputeLib computelib = new ComputeLib();
+	private int de;
 	private int nc;
 	private int re;
 
-	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.6");
-		int nc = 100000000;
-		int re = 100;
-		try {
-			nc = Integer.parseInt(args[0]);
-		} catch(Exception ex) {}
-		try {
-			re = Integer.parseInt(args[1]);
-		} catch(Exception ex) {}
-		VectorizedComputeBenchmark app = new VectorizedComputeBenchmark(nc,re);
-		app.run();
-		System.out.println("exit.");
-	}
-
 	private final String clSource =
-		"kernel void loopsmmult(global const float *a, global const float *b, global float *c) {"
-		+ "unsigned int xid = get_global_id(0);"
-		+ "float id = (float)xid;"
-		+ "float loopsum = 0.0f;"
-		+ "for (int y=0;y<72;y++) {"
-		+   "for (int x=0;x<128;x++) {"
-		+     "loopsum += (id+x)*y;"
-		+   "}"
-		+ "}"
-		+ "c[xid] = loopsum;"
-		+ "}";
-
-	public VectorizedComputeBenchmark(int vnc, int vre) {
+			"kernel void loopsmmult(global float *c) {"
+			+ "unsigned int xid = get_global_id(0);"
+			+ "float id = (float)xid;"
+			+ "float loopsum = 0.0f;"
+			+ "for (int y=0;y<72;y++) {"
+			+   "for (int x=0;x<128;x++) {"
+			+     "loopsum += (id+x)*y;"
+			+   "}"
+			+ "}"
+			+ "c[xid] = loopsum;"
+			+ "}";
+	
+	public VectorizedComputeBenchmark(int vde, int vnc, int vre) {
+		this.de = vde;
 		this.nc = vnc;
 		this.re = vre;
 	}
 
+	public static void main(String[] args) {
+		System.out.println("VectorizedComputeBenchmark v0.9.7");
+		int de = 0;
+		int nc = 100000000;
+		int re = 100;
+		try {de = Integer.parseInt(args[0]);} catch(Exception ex) {}
+		try {nc = Integer.parseInt(args[1]);} catch(Exception ex) {}
+		try {re = Integer.parseInt(args[2]);} catch(Exception ex) {}
+		VectorizedComputeBenchmark app = new VectorizedComputeBenchmark(de,nc,re);
+		app.run();
+		System.out.println("exit.");
+	}
+	
 	public void run() {
 		System.out.println("init.");
-		TreeMap<Long,Long> devicecontexts = initClDevices();
-		Set<Long> devices = devicecontexts.keySet();
-		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
-			Long device = d.next();
-			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			System.out.println("device found: "+devicename.trim());
-		}
 		System.out.println("Element count: "+this.nc+", Repeat count: "+this.re);
+
+		long device = computelib.devicelist[this.de];
+		Device devicedata = computelib.devicemap.get(device);
+		long queue = devicedata.queue;
+		String devicename = devicedata.devicename;
+		System.out.println("Using device["+de+"]: "+devicename);
 		
-		float[] a3 = new float[1];
-		float[] b3 = new float[1];
-		float[] cl2 = new float[nc];
-		for (Iterator<Long> d=devices.iterator();d.hasNext();) {
-			Long device = d.next();
-			Long context = devicecontexts.get(device);
-			String devicename = getClDeviceInfo(device, CL12.CL_DEVICE_NAME);
-			float ctimedif = runProgram(context, device, clSource, "loopsmmult", a3, b3, cl2, nc, re)/re;
-			float tflops = (nc*3.0f*128.0f*72.0f*(1000.0f/ctimedif))/1000000000000.0f;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t"+String.format("%.3f",tflops).replace(",", ".")+"tflops\t device: "+devicename);
-		}
+		long[] cbuf = {computelib.createBuffer(device, nc)};
+		long program = computelib.compileProgram(device, clSource);
+		float ctimedif = computelib.runProgram(device, queue, program, "loopsmmult", cbuf, new int[]{0}, new int[]{nc}, re, true)/re;
+		float tflops = (nc*3.0f*128.0f*72.0f*(1000.0f/ctimedif))/1000000000000.0f;
+		System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t"+String.format("%.3f",tflops).replace(",", ".")+"tflops\t device: "+devicename);
 		
 		System.out.println("done.");
 	}
-
-	private float runProgram(long context, long device, String source, String entry, float[] a, float[] b, float[] c, int size, int repeat) {
-		float ctimedif = 0.0f;
-		IntBuffer errcode_ret = clStack.callocInt(1);
-		int[] errcode_int = new int[1];
-		long clProgram = CL12.clCreateProgramWithSource(context, source, errcode_ret);
-		CL12.clBuildProgram(clProgram, device, "", null, NULL);
-		long clKernel = CL12.clCreateKernel(clProgram, entry, errcode_ret);
-		long clQueue = CL12.clCreateCommandQueue(context, device, CL12.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
-		long amem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_READ_ONLY, a, errcode_int);
-		CL12.clEnqueueWriteBuffer(clQueue, amem, true, 0, a, null, null);
-		long bmem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_READ_ONLY, b, errcode_int);
-		CL12.clEnqueueWriteBuffer(clQueue, bmem, true, 0, b, null, null);
-		long cmem = CL12.clCreateBuffer(context, CL12.CL_MEM_COPY_HOST_PTR | CL12.CL_MEM_WRITE_ONLY, c, errcode_int);
-		CL12.clSetKernelArg1p(clKernel, 0, amem);
-		CL12.clSetKernelArg1p(clKernel, 1, bmem);
-		CL12.clSetKernelArg1p(clKernel, 2, cmem);
-		int dimensions = 1;
-		PointerBuffer globalWorkSize = BufferUtils.createPointerBuffer(dimensions);
-		globalWorkSize.put(0, size);
-		CL12.clFinish(clQueue);
-		PointerBuffer event = clStack.mallocPointer(1);
-		PointerBuffer event2 = clStack.mallocPointer(1);
-		if (CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, event)==CL12.CL_SUCCESS) {
-			for (int i=1;i<repeat;i++) {
-				CL12.clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null, null, event2);
-			}
-			CL12.clWaitForEvents(event);
-			CL12.clWaitForEvents(event2);
-			long eventLong = event.get(0);
-			long eventLong2 = event2.get(0);
-			long[] ctimestart = {0};
-			long[] ctimeend = {0};
-			CL12.clGetEventProfilingInfo(eventLong, CL12.CL_PROFILING_COMMAND_START, ctimestart, (PointerBuffer)null);
-			CL12.clGetEventProfilingInfo(eventLong2, CL12.CL_PROFILING_COMMAND_END, ctimeend, (PointerBuffer)null);
-			ctimedif = (ctimeend[0]-ctimestart[0])/1000000.0f;
-			FloatBuffer resultBuff = BufferUtils.createFloatBuffer(c.length);
-			CL12.clEnqueueReadBuffer(clQueue, cmem, true, 0, resultBuff, null, null);
-			CL12.clFinish(clQueue);
-			Arrays.fill(c, 0.0f);
-			resultBuff.rewind();
-			resultBuff.get(0, c);
-		}
-		CL12.clReleaseMemObject(amem);
-		CL12.clReleaseMemObject(bmem);
-		CL12.clReleaseMemObject(cmem);
-		CL12.clFinish(clQueue);
-		CL12.clReleaseMemObject(clQueue);
-		CL12.clReleaseKernel(clKernel);
-		CL12.clReleaseProgram(clProgram);
-		return ctimedif;
-	}
-
-	private TreeMap<Long,Long> initClDevices() {
-		TreeMap<Long,Long> devices = new TreeMap<Long,Long>();
-		PointerBuffer clPlatforms = getClPlatforms();
-		if (clPlatforms!=null) {
-			PointerBuffer clCtxProps = clStack.mallocPointer(3);
-			clCtxProps.put(0, CL12.CL_CONTEXT_PLATFORM).put(2, 0);
-			for (int p = 0; p < clPlatforms.capacity(); p++) {
-				long platform = clPlatforms.get(p);
-				clCtxProps.put(1, platform);
-				PointerBuffer clDevices = getClDevices(platform);
-				for (int d = 0; d < clDevices.capacity(); d++) {
-					long device = clDevices.get(d);
-					IntBuffer errcode_ret = clStack.callocInt(1);
-					long context = CL12.clCreateContext(clCtxProps, device, (CLContextCallback)null, NULL, errcode_ret);
-					if (errcode_ret.get(errcode_ret.position())==CL12.CL_SUCCESS) {
-						devices.put(device, context);
-					}
-				}
-			}
-		}
-		return devices;
-	}
-
-	private PointerBuffer getClPlatforms() {
-		PointerBuffer platforms = null;
-		IntBuffer pi = clStack.mallocInt(1);
-		if (CL12.clGetPlatformIDs(null, pi)==CL12.CL_SUCCESS) {
-			PointerBuffer clPlatforms = clStack.mallocPointer(pi.get(0));
-			if (CL12.clGetPlatformIDs(clPlatforms, (IntBuffer)null)==CL12.CL_SUCCESS) {
-				platforms = clPlatforms;
-			}
-		}
-		return platforms;
-	}
-
-	private PointerBuffer getClDevices(long platform) {
-		PointerBuffer devices = null;
-		IntBuffer pi = clStack.mallocInt(1);
-		if (CL12.clGetDeviceIDs(platform, CL12.CL_DEVICE_TYPE_ALL, null, pi)==CL12.CL_SUCCESS) {
-			PointerBuffer pp = clStack.mallocPointer(pi.get(0));
-			if (CL12.clGetDeviceIDs(platform, CL12.CL_DEVICE_TYPE_ALL, pp, (IntBuffer)null)==CL12.CL_SUCCESS) {
-				devices = pp;
-			}
-		}
-		return devices;
-	}
-
-	private String getClDeviceInfo(long cl_device_id, int param_name) {
-		String deviceinfo = null;
-		PointerBuffer pp = clStack.mallocPointer(1);
-		if (CL12.clGetDeviceInfo(cl_device_id, param_name, (ByteBuffer)null, pp)==CL12.CL_SUCCESS) {
-			int bytes = (int)pp.get(0);
-			ByteBuffer buffer = clStack.malloc(bytes);
-			if (CL12.clGetDeviceInfo(cl_device_id, param_name, buffer, null)==CL12.CL_SUCCESS) {
-				deviceinfo = MemoryUtil.memUTF8(buffer, bytes - 1);
-			}
-		}
-		return deviceinfo;
-	}
-
 }
