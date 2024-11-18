@@ -2,7 +2,8 @@
 
 Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
-Benchmark test workload: 72*128 nested loops of float32 sum(2x) and multiplication(1x) with result placement into memory.
+Benchmark tflops workload: 72*128 nested loops of float32 sum(2x) and multiplication(1x) with result placement into memory.
+Benchmark gzpixels workload: clear float5 rgba-z graphics buffer in memory.
 
 ```
 Elements count:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
@@ -25,14 +26,14 @@ Java 23 JDK: https://www.oracle.com/java/technologies/downloads/
 
 Run command from console:
 ```
-java -jar vcb.jar <num-elements=100000000> <num-repeats=100>
+java -jar vcb.jar <num-elements=100000000> <num-repeats=1000>
 ```
 
 CPU OpenCL:
 ----------------
 Enabling CPU as Windows OpenCL device:
 
-install w_opencl_runtime_p_2024.2.0.980.exe:
+install w_opencl_runtime_p_2025.0.0.1166.exe:
 
 https://www.intel.com/content/www/us/en/developer/articles/technical/intel-cpu-runtime-for-opencl-applications-with-sycl-support.html
 
