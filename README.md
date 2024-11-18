@@ -2,8 +2,8 @@
 
 Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
-Benchmark tflops workload: 72*128 nested loops of float32 sum(2x) and multiplication(1x) with result placement into memory.
-Benchmark gzpixels workload: clear float5 rgba-z graphics buffer in memory.
+  - Benchmark tflops workload: 72*128 nested loops of float32 sum(2x) and multiplication(1x) with result placement into memory.
+  - Benchmark gzpixels workload: clear float5 rgba-z graphics buffer in memory.
 
 ```
 Elements count:     10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
