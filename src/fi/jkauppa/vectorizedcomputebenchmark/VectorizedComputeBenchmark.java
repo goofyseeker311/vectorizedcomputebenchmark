@@ -38,7 +38,7 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v0.9.9");
+		System.out.println("VectorizedComputeBenchmark v1.0.0");
 		int de = 0;
 		int nc = 100000000;
 		int re = 1000;
@@ -74,8 +74,8 @@ public class VectorizedComputeBenchmark {
 			computelib.writeBufferi(device, queue, ncmem, new int[]{nc});
 			long program = computelib.compileProgram(device, clFillSource);
 			float ctimedif = computelib.runProgram(device, queue, program, "loopsfill", cbuf, new int[]{0}, new int[]{nc}, re, true)/re;
-			float gzpixels = (nc*(1000.0f/ctimedif))/1000000000.0f;
-			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t"+String.format("%.3f",gzpixels).replace(",", ".")+"gzpixels\t device: "+devicename);
+			float gbytes = (nc*5.0f*4.0f*(1000.0f/ctimedif))/1000000000.0f;
+			System.out.println(String.format("%.4f",ctimedif).replace(",", ".")+"ms\t"+String.format("%.3f",gbytes).replace(",", ".")+"GB/s\t device: "+devicename);
 		}
 		
 		System.out.println("done.");
