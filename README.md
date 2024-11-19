@@ -14,7 +14,7 @@ gpu-nv-rtx3080:   34us /  35us /  36us /  36us / 152us / 1.3ms /  13ms / 125ms
 ```
 Gzpixels elements:  10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
 cpu-amd-r5800x:     us /    us /    us /    ms /    ms / 190us /  11ms / 114ms
-gpu-nv-rtx3080:   24us /  22us /  23us /  22us /  23us /  50us / 412us / 3.7ms
+gpu-nv-rtx3080:   24us /  22us /  23us /  22us /  23us /  50us / 424us / 3.7ms
 ```
 
 
