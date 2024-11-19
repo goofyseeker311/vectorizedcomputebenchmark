@@ -7,13 +7,13 @@ Java vectorized cpu/gpu tool for benchmarking generic math workloads.
 
 ```
 Tflops elements:    10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-cpu-amd-r5800x:   15us / 8.9us / 134us / 1.3ms /  12ms / 111ms /  1.1s /   11s
+cpu-amd-r5800x:   15us / 8.9us / 166us / 1.3ms /  12ms / 111ms /  1.1s /   11s
 gpu-nv-rtx3080:   34us /  35us /  36us /  36us / 137us / 1.3ms /  13ms / 125ms
 ```
 
 ```
 Gzpixels elements:  10 /   100 /    1K /   10K /  100K /    1M /   10M /  100M
-cpu-amd-r5800x:     us /    us /    us /  15us /  31us / 190us /  11ms / 114ms
+cpu-amd-r5800x:     us /    us /  31us /  15us /  31us / 190us /  11ms / 114ms
 gpu-nv-rtx3080:   24us /  22us /  23us /  22us /  24us /  50us / 424us / 3.7ms
 ```
 
