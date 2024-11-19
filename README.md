@@ -32,7 +32,7 @@ Java 23 JDK: https://www.oracle.com/java/technologies/downloads/
 
 Run command from console:
 ```
-java -jar vcb.jar <num-elements=100000000> <num-repeats=1000>
+java -jar vcb.jar <device-index=0> <num-elements=100000000> <num-repeats=1000>
 ```
 
 CPU OpenCL:
