@@ -38,7 +38,7 @@ public class VectorizedComputeBenchmark {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("VectorizedComputeBenchmark v1.0.0");
+		System.out.println("VectorizedComputeBenchmark v1.0.1");
 		int de = 0;
 		int nc = 100000000;
 		int re = 1000;

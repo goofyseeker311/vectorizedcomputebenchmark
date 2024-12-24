@@ -1,6 +1,7 @@
 package fi.jkauppa.vectorizedcomputebenchmark;
 
 import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
@@ -9,31 +10,20 @@ import java.util.TreeMap;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.glfw.GLFWNativeGLX;
-import org.lwjgl.glfw.GLFWNativeWGL;
-import org.lwjgl.glfw.GLFWNativeX11;
-import org.lwjgl.opencl.APPLEGLSharing;
 import org.lwjgl.opencl.CL;
 import org.lwjgl.opencl.CL30;
 import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CLCapabilities;
 import org.lwjgl.opencl.CLContextCallback;
-import org.lwjgl.opencl.KHRGLSharing;
-import org.lwjgl.opengl.CGL;
-import org.lwjgl.opengl.WGL;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.system.Platform;
 
 public class ComputeLib {
 	public TreeMap<Long,Device> devicemap = null;
 	public Long[] devicelist = null;
 
 	public ComputeLib() {
-		this(MemoryUtil.NULL);
-	}
-	public ComputeLib(long window) {
-		this.devicemap = initClDevices(window);
+		this.devicemap = initClDevices();
 		devicelist = devicemap.keySet().toArray(new Long[devicemap.size()]);
 		for (int i=0;i<devicelist.length;i++) {
 			long device = devicelist[i];
@@ -156,7 +146,10 @@ public class ComputeLib {
 				}else {
 					textfilestream = new BufferedInputStream(new FileInputStream(textfile));
 				}
-				k = new String(textfilestream.readAllBytes());
+				textfilestream.reset();
+				byte[] bytes = new byte[textfilestream.available()];
+				DataInputStream dataInputStream = new DataInputStream(textfilestream);
+				dataInputStream.readFully(bytes);
 				textfilestream.close();
 			} catch (Exception ex) {ex.printStackTrace();}
 		}
@@ -235,7 +228,7 @@ public class ComputeLib {
 		public String devicename = null;
 	}
 
-	private TreeMap<Long,Device> initClDevices(long window) {
+	private TreeMap<Long,Device> initClDevices() {
 		TreeMap<Long,Device> devicesinit = new TreeMap<Long,Device>();
 		MemoryStack clStack = MemoryStack.stackPush();
 		IntBuffer pi = clStack.mallocInt(1);
@@ -255,28 +248,9 @@ public class ComputeLib {
 								IntBuffer errcode_ret = clStack.callocInt(1);
 								int errcode_ret_int = 1;
 								boolean contextsharing = false;
-								long context = MemoryUtil.NULL;
-								if (window!=MemoryUtil.NULL) {
-									PointerBuffer clCtxPropsSharing = clStack.mallocPointer(7);
-									switch (Platform.get()) {
-									case WINDOWS: clCtxPropsSharing.put(KHRGLSharing.CL_GL_CONTEXT_KHR).put(GLFWNativeWGL.glfwGetWGLContext(window)).put(KHRGLSharing.CL_WGL_HDC_KHR).put(WGL.wglGetCurrentDC()); break;
-									case FREEBSD:
-									case LINUX: clCtxPropsSharing.put(KHRGLSharing.CL_GL_CONTEXT_KHR).put(GLFWNativeGLX.glfwGetGLXContext(window)).put(KHRGLSharing.CL_GLX_DISPLAY_KHR).put(GLFWNativeX11.glfwGetX11Display()); break;
-									case MACOSX: clCtxPropsSharing.put(APPLEGLSharing.CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE).put(CGL.CGLGetShareGroup(CGL.CGLGetCurrentContext()));
-									}
-									clCtxPropsSharing.put(CL30.CL_CONTEXT_PLATFORM).put(platform).put(MemoryUtil.NULL).flip();
-									context = CL30.clCreateContext(clCtxPropsSharing, device, (CLContextCallback)null, MemoryUtil.NULL, errcode_ret);
-									errcode_ret_int = errcode_ret.get(errcode_ret.position());
-									if (errcode_ret_int==CL30.CL_SUCCESS) {
-										contextsharing = true;
-									}
-								}
-								
-								if (errcode_ret_int!=CL30.CL_SUCCESS) {
-									PointerBuffer clCtxProps = clStack.mallocPointer(3);
-									clCtxProps.put(0, CL30.CL_CONTEXT_PLATFORM).put(1, platform).put(2, 0);
-									context = CL30.clCreateContext(clCtxProps, device, (CLContextCallback)null, MemoryUtil.NULL, errcode_ret);
-								}
+								PointerBuffer clCtxProps = clStack.mallocPointer(3);
+								clCtxProps.put(0, CL30.CL_CONTEXT_PLATFORM).put(1, platform).put(2, 0);
+								long context = CL30.clCreateContext(clCtxProps, device, (CLContextCallback)null, MemoryUtil.NULL, errcode_ret);
 								
 								errcode_ret_int = errcode_ret.get(errcode_ret.position());
 								if (errcode_ret_int==CL30.CL_SUCCESS) {
