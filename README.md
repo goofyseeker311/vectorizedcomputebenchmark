@@ -28,7 +28,7 @@ Eclipse IDE for Java Developers: https://www.eclipse.org/downloads/packages/
 Running:
 ----------------
 
-Java 23 JDK: https://www.oracle.com/java/technologies/downloads/
+Java SE 8 JDK or later: https://www.oracle.com/java/technologies/downloads/
 
 Run command from console:
 ```
