@@ -12,7 +12,6 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL;
 import org.lwjgl.opencl.CL30;
-import org.lwjgl.opencl.CL12GL;
 import org.lwjgl.opencl.CLCapabilities;
 import org.lwjgl.opencl.CLContextCallback;
 import org.lwjgl.system.MemoryStack;
@@ -28,11 +27,7 @@ public class ComputeLib {
 		for (int i=0;i<devicelist.length;i++) {
 			long device = devicelist[i];
 			Device devicedata = devicemap.get(device);
-			System.out.print("OpenCL device["+i+"]: "+devicedata.devicename+" ["+devicedata.plaformopenclversion+"]");
-			if (devicedata.platformcontextsharing) {
-				System.out.print(" (OpenGL context sharing supported)");
-			}
-			System.out.println();
+			System.out.println("OpenCL device["+i+"]: "+devicedata.devicename+" ["+devicedata.plaformopenclversion+"]");
 		}
 	}
 
@@ -119,22 +114,6 @@ public class ComputeLib {
 		CL30.clReleaseMemObject(vmem);
 	}
 
-	public long createSharedGLBuffer(long device, int glbuffer) {
-		MemoryStack clStack = MemoryStack.stackPush();
-		IntBuffer errcode_ret = clStack.callocInt(1);
-		Device devicedata = devicemap.get(device);
-		long context = devicedata.context;
-		long buffer = CL12GL.clCreateFromGLBuffer(context, CL30.CL_MEM_READ_WRITE, glbuffer, errcode_ret);
-		MemoryStack.stackPop();
-		return buffer;
-	}
-	public void acquireSharedGLBuffer(long queue, long vmem) {
-		CL12GL.clEnqueueAcquireGLObjects(queue, vmem, null, null);
-	}
-	public void releaseSharedGLBuffer(long queue, long vmem) {
-		CL12GL.clEnqueueReleaseGLObjects(queue, vmem, null, null);
-	}
-
 	public static String loadProgram(String filename, boolean loadresourcefromjar) {
 		String k = null;
 		if (filename!=null) {
@@ -146,10 +125,10 @@ public class ComputeLib {
 				}else {
 					textfilestream = new BufferedInputStream(new FileInputStream(textfile));
 				}
-				textfilestream.reset();
 				byte[] bytes = new byte[textfilestream.available()];
 				DataInputStream dataInputStream = new DataInputStream(textfilestream);
 				dataInputStream.readFully(bytes);
+				k = new String(bytes);
 				textfilestream.close();
 			} catch (Exception ex) {ex.printStackTrace();}
 		}
@@ -224,7 +203,6 @@ public class ComputeLib {
 		public String platformname = null;
 		public CLCapabilities plaformcaps = null;
 		public String plaformopenclversion = null;
-		public boolean platformcontextsharing = false;
 		public String devicename = null;
 	}
 
@@ -247,7 +225,6 @@ public class ComputeLib {
 								
 								IntBuffer errcode_ret = clStack.callocInt(1);
 								int errcode_ret_int = 1;
-								boolean contextsharing = false;
 								PointerBuffer clCtxProps = clStack.mallocPointer(3);
 								clCtxProps.put(0, CL30.CL_CONTEXT_PLATFORM).put(1, platform).put(2, 0);
 								long context = CL30.clCreateContext(clCtxProps, device, (CLContextCallback)null, MemoryUtil.NULL, errcode_ret);
@@ -262,7 +239,6 @@ public class ComputeLib {
 									devicedesc.plaformcaps = platformcaps;
 									devicedesc.plaformopenclversion = getClPlatformInfo(platform, CL30.CL_PLATFORM_VERSION).trim();
 									devicedesc.devicename = getClDeviceInfo(device, CL30.CL_DEVICE_NAME).trim();
-									devicedesc.platformcontextsharing = contextsharing;
 									devicesinit.put(device, devicedesc);
 								}
 							}
