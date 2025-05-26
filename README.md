@@ -21,7 +21,7 @@ gpu-nv-rtx3080:   25us /  22us /  23us /  25us /  24us /  50us / 424us / 3.7ms
 Compiling:
 ----------------
 
-LWJGL/OpenCL 3.3.4 or later: https://www.lwjgl.org/customize
+LWJGL/OpenCL 3.3.6 or later: https://www.lwjgl.org/customize
 
 Eclipse IDE for Java Developers: https://www.eclipse.org/downloads/packages/
 
